@@ -1,10 +1,16 @@
+module Grammar where
+
 type Name = String
 
+-- Aritmetic operations
 data ArithOp = Add | Sub | Mult | Div
 
+-- Boolean operations
 data BoolOp = Not | GT | LT | GTE | LTE
 
-data ListOp = ListConcat | Map Expr | Ind Int
+-- List operations, categorized by whether they're unary or binary (if they take one list or two lists)
+data ListOpUn = Map Expr | Ind Int
+data ListOpBi = ListConcat
 
 data Expr = If Expr Expr Expr               -- (if boolean-expr then-expr else-expr)
           | B Bool 
@@ -16,8 +22,9 @@ data Expr = If Expr Expr Expr               -- (if boolean-expr then-expr else-e
           | BoolExpr BoolOp Expr Expr       -- ([<, >, <=, >=] bool-expr bool-expr)
           | Let [(Expr, Expr)] Expr         -- (let ((name-expr val-expr) (name-expr val-expr) (name-expr val-expr) ...) (body-expr))
           | List [Expr]                     -- (list expr1 expr2 expr3 ...)
-          | ListExpr ListOp Expr            -- ([++, map <function>, ind <index value>] (list expr1 expr2 ...))
-          | Call Stmt [Expr]                -- (function-name param1 param2 param3 ...)
+          | ListExprUn ListOpUn Expr        -- ([map <function>, ind <index value>] (list expr1 expr2 ...))
+          | ListExprBi ListOpBi Expr Expr   -- (++ (list expr1 expr2 ...) (list expr3 expr4 ...))
+          | Call Expr [Expr]                -- (function-name param1 param2 param3 ...)
 
 data Stmt = Func Expr [Expr] Expr           -- (fn name-expr (param-expr1 param-expr2 ...) (body-expr))
 
