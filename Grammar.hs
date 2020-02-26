@@ -3,7 +3,7 @@ module Grammar where
 type Name = String
 
 -- Aritmetic operations
-data ArithOp = Add | Sub | Mul | Div
+data ArithOp = Add | Sub | Mul
   deriving (Eq, Show)
 
 -- Boolean operations

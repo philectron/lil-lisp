@@ -40,7 +40,12 @@ stringConcat _ _  = Right "Cannot concatenate non-string types"
 -- Takes two expressions; if they're two numbers, perform the given operation on
 -- them. Otherwise, throw an error.
 arithExpr :: ArithOp -> Expr -> Expr -> Result
-arithExpr = undefined
+arithExpr op (I numl) (I numr) = Left (I $ operator numl numr)
+  where operator = case op of
+                     Add -> (+)
+                     Sub -> (-)
+                     Mul -> (*)
+arithExpr _ _ _ = Right "Cannot perform arithmetic operation on non-number types"
 
 -- Takes two expressions; if they're two bools, perform the given operation on
 -- them. Otherwise, throw an error.
