@@ -21,12 +21,12 @@ data Expr = B Bool
           | I Int
           | N Name
           | S String
+          | List [Expr]                     -- (list expr1 expr2 expr3 ...)
           | If Expr Expr Expr               -- (if boolean-expr then-expr else-expr)
           | StrConcat Expr Expr             -- (++ string-expr string-expr)
           | ArithExpr ArithOp Expr Expr     -- ([+, -, *, /] num-expr num-expr)
           | BoolExpr BoolOp Expr Expr       -- ([!, =, >, <, >=, <=] bool-expr bool-expr)
           | Let [(Expr, Expr)] Expr         -- (let ((name-expr val-expr) (name-expr val-expr) (name-expr val-expr) ...) (body-expr))
-          | List [Expr]                     -- (list expr1 expr2 expr3 ...)
           | ListExprUn ListOpUn Expr        -- ([map <function>, ind <index value>] (list expr1 expr2 ...))
           | ListExprBi ListOpBi Expr Expr   -- (++ (list expr1 expr2 ...) (list expr3 expr4 ...))
           | Call Expr [Expr]                -- (call function-name (param1 param2 param3 ...))
