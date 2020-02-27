@@ -55,9 +55,7 @@ arithExpr _ _ _ = Error "Cannot perform arithmetic operation on non-integers"
 -- bool-un-op on it and returns the result.
 -- Otherwise, throws an error.
 boolExprUn :: BoolOpUn -> Expr -> Expr
-boolExprUn op (B bool) = B $ operator bool
-  where operator = case op of
-                     Not -> (not)
+boolExprUn Not (B bool) = B $ not bool
 boolExprUn _ _ = Error "Cannot perform unary boolean operation on non-booleans"
 
 -- Takes three expressions: bool-bi-op, expr-l, expr-r.
