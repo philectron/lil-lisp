@@ -79,7 +79,9 @@ boolExprBi _ _ _ = Error "Cannot perform binary boolean operation on non-strings
 -- Takes an expression; if it's a list, perform the given operation on it.
 -- Otherwise, throw an error.
 listExprUn :: ListOpUn -> Expr -> Expr
-listExprUn = undefined
+listExprUn (Ind i) (List v) = v !! i
+listExprUn (Map n) (List v) = undefined
+listExprUn _ _ = Error "Cannot map or index non-list type."
 
 -- Takes an expression; if it's a list, perform the given operation on it.
 -- Otherwise, throw an error.
