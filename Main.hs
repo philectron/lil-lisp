@@ -19,7 +19,8 @@ expr (List v) = Left (List v)
 expr (If cond exprl exprr) = ifExpr cond exprl exprr
 expr (StrConcat strl strr) = stringConcat strl strr
 expr (ArithExpr op numl numr) = arithExpr op numl numr
-expr (BoolExpr op booll boolr) = boolExpr op booll boolr
+expr (BoolExprUn op bool) = boolExprUn op bool
+expr (BoolExprBi op exprl exprr) = boolExprBi op exprl exprr
 expr (ListExprUn op list) = listExprUn op list
 expr (ListExprBi op listl listr) = listExprBi op listl listr
 expr (Call name arguments) = fnCall name arguments
@@ -47,10 +48,27 @@ arithExpr op (I numl) (I numr) = Left (I $ operator numl numr)
                      Mul -> (*)
 arithExpr _ _ _ = Right "Cannot perform arithmetic operation on non-number types"
 
+-- Takes one expression; if the expression is a bool, perform the given
+-- operation on it. Otherwise, throw an error.
+boolExprUn :: BoolOpUn -> Expr -> Result
+boolExprUn op (B bool) = Left (B $ operator bool)
+  where operator = case op of
+                     Not -> (not)
+boolExprUn _ _ = Right "Cannot perform unary boolean expression on non-boolean types"
+
 -- Takes two expressions; if they're two bools, perform the given operation on
 -- them. Otherwise, throw an error.
-boolExpr :: BoolOp -> Expr -> Expr -> Result
-boolExpr = undefined
+boolExprBi :: BoolOpBi -> Expr -> Expr -> Result
+boolExprBi Eq (S strl) (S strr) = Left (B $ (==) strl strr)
+boolExprBi _ (S strl) (S strr) = Right "Cannot perform inequality operator on non-number types"
+boolExprBi op (I numl) (I numr) = Left (B $ operator numl numr)
+  where operator = case op of
+                     Gt  -> (>)
+                     Lt  -> (<)
+                     Gte -> (>=)
+                     Lte -> (<=)
+boolExprBi _ _ _ = Right "Cannot perform binary boolean expression on non-alphanumeric types"
+
 
 -- Takes an expression; if it's a list, perform the given operation on it.
 -- Otherwise, throw an error.

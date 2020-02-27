@@ -6,8 +6,11 @@ type Name = String
 data ArithOp = Add | Sub | Mul
   deriving (Eq, Show)
 
--- Boolean operations
-data BoolOp = Not | EQ | GT | LT | GTE | LTE
+-- Boolean operations, categorized by whether they're unary or binary (if they
+-- take one boolean expression or two boolean expressions)
+data BoolOpUn = Not
+  deriving (Eq, Show)
+data BoolOpBi = Eq | Gt | Lt | Gte | Lte
   deriving (Eq, Show)
 
 -- List operations, categorized by whether they're unary or binary (if they take
@@ -25,7 +28,8 @@ data Expr = B Bool
           | If Expr Expr Expr               -- (if boolean-expr then-expr else-expr)
           | StrConcat Expr Expr             -- (++ string-expr string-expr)
           | ArithExpr ArithOp Expr Expr     -- ([+, -, *, /] num-expr num-expr)
-          | BoolExpr BoolOp Expr Expr       -- ([!, =, >, <, >=, <=] bool-expr bool-expr)
+          | BoolExprUn BoolOpUn Expr        -- (! bool-expr)
+          | BoolExprBi BoolOpBi Expr Expr   -- ([=, >, <, >=, <=] expr1 expr2)
           | Let [(Expr, Expr)] Expr         -- (let ((name-expr val-expr) (name-expr val-expr) (name-expr val-expr) ...) (body-expr))
           | ListExprUn ListOpUn Expr        -- ([map <function>, ind <index value>] (list expr1 expr2 ...))
           | ListExprBi ListOpBi Expr Expr   -- (++ (list expr1 expr2 ...) (list expr3 expr4 ...))
