@@ -2,22 +2,20 @@ module Main where
 
 import Grammar
 
--- Result can be either an expression on success or an error message on failure.
-type Result = Either Expr String
-
 main :: IO ()
 main = putStrLn "hello yes this is main"
 
--- Takes an expression and recursively evaluates until resulting in one of the 5
--- base types or an error.
-expr :: Expr -> Result
-expr (B v) = Left (B v)
-expr (I v) = Left (I v)
-expr (N v) = Left (N v)
-expr (S v) = Left (S v)
-expr (List v) = Left (List v)
+-- Takes an expression and recursively evaluates until resulting in one of the
+-- base cases.
+expr :: Expr -> Expr
+expr (B v) = B v
+expr (I v) = I v
+expr (N v) = N v
+expr (S v) = S v
+expr (List v) = List v
+expr (Error v) = S v
 expr (If cond exprl exprr) = ifExpr cond exprl exprr
-expr (StrConcat strl strr) = stringConcat strl strr
+expr (StrConcat strl strr) = strConcat strl strr
 expr (ArithExpr op numl numr) = arithExpr op numl numr
 expr (BoolExprUn op bool) = boolExprUn op bool
 expr (BoolExprBi op exprl exprr) = boolExprBi op exprl exprr
@@ -26,58 +24,66 @@ expr (ListExprBi op listl listr) = listExprBi op listl listr
 expr (Call name arguments) = fnCall name arguments
 expr (Let defs body) = letScope defs body
 
--- Takes three expressions: bool-expr, expr-left, and expr-right.
+-- Takes three expressions: bool-expr, expr-left, expr-right.
 -- If bool-expr evaluates to true, returns expr-left.
 -- Otherwise, returns expr-right.
-ifExpr :: Expr -> Expr -> Expr -> Result
+ifExpr :: Expr -> Expr -> Expr -> Expr
 ifExpr = undefined
 
--- Takes two expressions; if they're two strings, concat them. Otherwise, throw
--- an error.
-stringConcat :: Expr -> Expr -> Result
-stringConcat (S strl) (S strr) = Left (S $ strl ++ strr)
-stringConcat _ _  = Right "Cannot concatenate non-string types"
+-- Takes two expressions: str-expr-l, str-expr-r.
+-- If they're two strings, concatenates str-expr-l and str-expr-r and returns
+-- the concatenated string.
+-- Otherwise, throws an error.
+strConcat :: Expr -> Expr -> Expr
+strConcat (S strl) (S strr) = S $ strl ++ strr
+strConcat _ _  = Error "Cannot concatenate non-strings"
 
--- Takes two expressions; if they're two numbers, perform the given operation on
--- them. Otherwise, throw an error.
-arithExpr :: ArithOp -> Expr -> Expr -> Result
-arithExpr op (I numl) (I numr) = Left (I $ operator numl numr)
+-- Takes three expressions: arith-op, expr-l, expr-r.
+-- If expr-l and expr-r are two integers, performs the given arithmetic
+-- operation arith-op on them and returns the result.
+-- Otherwise, throws an error.
+arithExpr :: ArithOp -> Expr -> Expr -> Expr
+arithExpr op (I numl) (I numr) = I $ operator numl numr
   where operator = case op of
-                     Add -> (+)
-                     Sub -> (-)
-                     Mul -> (*)
-arithExpr _ _ _ = Right "Cannot perform arithmetic operation on non-number types"
+                    Add -> (+)
+                    Sub -> (-)
+                    Mul -> (*)
+arithExpr _ _ _ = Error "Cannot perform arithmetic operation on non-integers"
 
--- Takes one expression; if the expression is a bool, perform the given
--- operation on it. Otherwise, throw an error.
-boolExprUn :: BoolOpUn -> Expr -> Result
-boolExprUn op (B bool) = Left (B $ operator bool)
+-- Takes two expressions: bool-un-op, bool-expr.
+-- If the expression is a boolean, performs the given unary boolean operation
+-- bool-un-op on it and returns the result.
+-- Otherwise, throws an error.
+boolExprUn :: BoolOpUn -> Expr -> Expr
+boolExprUn op (B bool) = B $ operator bool
   where operator = case op of
                      Not -> (not)
-boolExprUn _ _ = Right "Cannot perform unary boolean expression on non-boolean types"
+boolExprUn _ _ = Error "Cannot perform unary boolean operation on non-booleans"
 
--- Takes two expressions; if they're two bools, perform the given operation on
--- them. Otherwise, throw an error.
-boolExprBi :: BoolOpBi -> Expr -> Expr -> Result
-boolExprBi Eq (S strl) (S strr) = Left (B $ (==) strl strr)
-boolExprBi _ (S strl) (S strr) = Right "Cannot perform inequality operator on non-number types"
-boolExprBi op (I numl) (I numr) = Left (B $ operator numl numr)
+-- Takes three expressions: bool-bi-op, expr-l, expr-r.
+-- If the expressions are both integers or both strings, performs the given
+-- binary boolean operation bool-bi-op on them.
+-- Otherwise, throws an error.
+boolExprBi :: BoolOpBi -> Expr -> Expr -> Expr
+boolExprBi op (I numl) (I numr) = B $ operator numl numr
   where operator = case op of
+                     Eq  -> (==)
                      Gt  -> (>)
                      Lt  -> (<)
                      Gte -> (>=)
                      Lte -> (<=)
-boolExprBi _ _ _ = Right "Cannot perform binary boolean expression on non-alphanumeric types"
-
+boolExprBi Eq (S strl) (S strr) = B $ (==) strl strr
+boolExprBi _ (S strl) (S strr) = Error "Cannot perform inequality boolean operations on strings"
+boolExprBi _ _ _ = Error "Cannot perform binary boolean operation on non-strings or non-integers or mismatched types"
 
 -- Takes an expression; if it's a list, perform the given operation on it.
 -- Otherwise, throw an error.
-listExprUn :: ListOpUn -> Expr -> Result
+listExprUn :: ListOpUn -> Expr -> Expr
 listExprUn = undefined
 
 -- Takes an expression; if it's a list, perform the given operation on it.
 -- Otherwise, throw an error.
-listExprBi :: ListOpBi -> Expr -> Expr -> Result
+listExprBi :: ListOpBi -> Expr -> Expr -> Expr
 listExprBi = undefined
 
 -- Takes an expression and an expression list.
@@ -86,7 +92,7 @@ listExprBi = undefined
 -- This function retuns the result of performing the computation defined by the
 -- lreferenced function...using the values described in the argument list as
 -- the passed-in parameters.
-fnCall :: Expr -> [Expr] -> Result
+fnCall :: Expr -> [Expr] -> Expr
 fnCall = undefined
 
 -- Takes a list of expression tuples and an expression.
@@ -95,5 +101,5 @@ fnCall = undefined
 -- This function returns the result of the computation in the expression, with
 -- all the Names in the expression... replaced by the corrosponding values in =
 -- the list of (Name, Value) tuples.
-letScope :: [(Expr, Expr)] -> Expr -> Result
+letScope :: [(Expr, Expr)] -> Expr -> Expr
 letScope = undefined
