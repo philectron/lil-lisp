@@ -84,7 +84,8 @@ listExprUn = undefined
 -- Takes an expression; if it's a list, perform the given operation on it.
 -- Otherwise, throw an error.
 listExprBi :: ListOpBi -> Expr -> Expr -> Expr
-listExprBi = undefined
+listExprBi ListConcat (List r) (List l) = List $ r ++ l
+listExprBi _ _ _ = Error "Cannot concatenate non-list types with list concatenate operator."
 
 -- Takes an expression and an expression list.
 -- The first expression must be the name of a function defined with a Stmt.
