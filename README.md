@@ -19,6 +19,8 @@ Our language implementation is intended to be run from GHCi. For now, our langua
 
 Module to be loaded: Main
 
+Note that we don't have a parser yet. These are just examples what the end product looks like. For more examples, please look at `Main.Test.hs` for tests for AST
+
 A simple example run:
 
 (Standing on the root directory of the project)
