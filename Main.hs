@@ -84,7 +84,7 @@ listExprUn _ _ = Error "Cannot map or index non-list type."
 -- Takes an expression; if it's a list, perform the given operation on it.
 -- Otherwise, throw an error.
 listExprBi :: ListOpBi -> Expr -> Expr -> Expr
-listExprBi ListConcat (List r) (List l) = List $ r ++ l
+listExprBi ListConcat (List l) (List r) = List $ l ++ r
 listExprBi _ _ _ = Error "Cannot concatenate non-list types with list concatenate operator."
 
 -- Takes an expression and an expression list.
