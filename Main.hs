@@ -14,7 +14,7 @@ expr (N v) = N v
 expr (S v) = S v
 expr (List v) = List v
 expr (Error v) = S v
-expr (If cond exprl exprr) = ifExpr cond exprl exprr
+expr (If cond exprThen exprElse) = ifExpr cond exprThen exprElse
 expr (StrConcat strl strr) = strConcat strl strr
 expr (ArithExpr op numl numr) = arithExpr op numl numr
 expr (BoolExprUn op bool) = boolExprUn op bool
@@ -28,7 +28,8 @@ expr (Let defs body) = letScope defs body
 -- If bool-expr evaluates to true, returns expr-left.
 -- Otherwise, returns expr-right.
 ifExpr :: Expr -> Expr -> Expr -> Expr
-ifExpr = undefined
+ifExpr (B cond) exprThen exprElse = if cond then exprThen else exprElse
+ifExpr _ _ _ = Error "Cannot branch expressions based on non-boolean condition"
 
 -- Takes two expressions: str-expr-l, str-expr-r.
 -- If they're two strings, concatenates str-expr-l and str-expr-r and returns
