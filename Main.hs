@@ -88,14 +88,26 @@ listExprBi :: ListOpBi -> Expr -> Expr -> Expr
 listExprBi ListConcat (List l) (List r) = List $ l ++ r
 listExprBi _ _ _ = Error "Cannot concatenate non-list types with list concatenate operator."
 
+matchPA :: [Name] -> [Expr] -> Env Expr
+matchPA [] [] = []
+matchPA (x:xs) (y:ys) = (x,y) : matchPA xs ys
+
 -- Takes an expression and an expression list.
 -- The first expression must be the name of a function defined with a Stmt.
 -- The expression list can be any arbitrary values.
 -- This function retuns the result of performing the computation defined by the
 -- lreferenced function...using the values described in the argument list as
 -- the passed-in parameters.
+-- fnCall name-expr [expr1 expr2...]
 fnCall :: Expr -> [Expr] -> Expr
-fnCall = undefined
+fnCall (N funcName) args = case (Ref funcName) of
+    (params bodyExpr) -> if length params /= length args
+                            then Error "Number of arguments does not match number of parameter"
+                            else expr bodyExpr env'
+                                where env' = (matchPA params args) ++ env
+    _ -> Error "Function " ++ funcName ++ " not found"
+fnCall _ l = Error "Cannot call function. Must call function by a name type"
+fnCall (N funcName) _ = Error "Cannot call function. Must put a list as arguments"
 
 -- Takes a list of expression tuples and an expression.
 -- The list of expression tuples should be (Name, Value).

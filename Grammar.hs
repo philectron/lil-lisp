@@ -20,6 +20,9 @@ data ListOpUn = Map Expr | Ind Int
 data ListOpBi = ListConcat
   deriving (Eq, Show)
 
+-- | An environment maps variables to some type of values.
+type Env t = [(Name,t)]
+
 data Expr
   = B Bool                         -- base type: Boolean
   | I Int                          -- base type: Integer
