@@ -28,6 +28,7 @@ data Expr
   | I Int                          -- base type: Integer
   | N Name                         -- base type: Name
   | S String                       -- base type: String
+  | C (Env Expr) [Name] Expr       -- closure
   | List [Expr]                    -- (list expr1 expr2 ...)
   | Error String                   -- base type: Error
   | C (Env Expr) [Name] Expr       -- closure
