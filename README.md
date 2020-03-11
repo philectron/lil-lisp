@@ -27,7 +27,7 @@ Note that we don't have a parser yet. These are just examples what the end produ
 $ doctest --verbose ./Main.Test.hs | less
 ```
 
-This will output the detailed content of tests, along with our descriptions of the tests, the expected outputs, and the outputs. The whole output is paged with `less` pager for convenience
+This will output the detailed content of tests, along with our descriptions of the tests, the expected outputs, and the outputs. The whole output is paged with `less` pager for convenience.
 
 ##### 3.2. To manually test our program yourself
 
@@ -50,7 +50,7 @@ Then, execute function `expr` with two arguments:
 
 - Second argument: `[]` (this is the initial stack when the program first starts with)
 
-An example, let say we'd like to test the interperter on the following Lil' Lisp program
+For example, let's say we'd like to test the interpreter on the following Lil' Lisp program
 
 ```
 (define (ais3 a)
@@ -58,9 +58,9 @@ An example, let say we'd like to test the interperter on the following Lil' Lisp
 (ais3 3))
 ```
 
-This Lil' Lisp program define a function named `ais3` that return whether its first argument `a` is equal to integer `3` or not. Then, this program call that same function with the first argument is `3`. Obviously, the final output should be `True`.
+This Lil' Lisp program defines a function named `ais3` that return whether its first argument `a` is equal to integer `3` or not. Then, this program calls that same function with the first argument is `3`. The final output should be `True`.
 
-So, the manual test should be (assuming you already loaded the `Main` module):
+The manual test should be (assuming you already loaded the `Main` module):
 
 ```
 *Main> expr (Func "ais3" ["a"] (BoolExprBi Eq (Ref "a") (I 3)) (Call "ais3" [I 3])) []
@@ -68,12 +68,12 @@ B True
 ```
 
 In this example:
-- We tested three features of the interpreter at the same time: Function (`Func` and `Call`), binding (`Ref`), and boolean operation (`BoolExprBi`)
+- We tested three features of the interpreter at the same time: Function (`Func` and `Call`), binding (`Ref`), and boolean operation (`BoolExprBi`).
 
 - The first argument is `(Func "ais3" ["a"] (BoolExprBi Eq (Ref "a") (I 3)) (Call "ais3" [I 3]))`
 
 - The second argument is `[]` (always)
 
-- The output is `B True`, which is what we expected. So the interpreter has worked correctly.
+- The output is `B True`, which is what we expected. The interpreter has worked correctly.
 
 For more examples of usage of `expr`, check out how we use it at the end of `Main.Test.hs`.
