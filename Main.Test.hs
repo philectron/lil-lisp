@@ -9,107 +9,200 @@ import Main
 
 -- | Unit tests the semantics of the conditional expression.
 --
---   >>> ifExprTest (B True) (I 5) (I 3)
+--   >>> ifExpr (B True) (I 5) (I 3) []
 --   I 5
 --
---   >>> ifExprTest (B False) (I 5) (I 3)
+--   >>> ifExpr (B False) (I 5) (I 3) []
 --   I 3
 --
---   >>> ifExprTest (B True) (S "abc") (I 123)
+--   >>> ifExpr (B True) (S "abc") (I 123) []
 --   S "abc"
 --
---   >>> ifExprTest (B False) (S "123") (B True)
+--   >>> ifExpr (B False) (S "123") (B True) []
 --   B True
 --
---   >>> ifExprTest (I 1) (S "123") (I 123)
+--   >>> ifExpr (I 1) (S "123") (I 123) []
 --   Error "Cannot branch expressions based on non-boolean condition"
 --
---   >>> ifExprTest (I 0) (S "123") (I 123)
+--   >>> ifExpr (I 0) (S "123") (I 123) []
 --   Error "Cannot branch expressions based on non-boolean condition"
-ifExprTest :: Expr -> Expr -> Expr -> Expr
-ifExprTest = ifExpr
 
 -- | Unit tests the semantics of the string concatenation expression.
 --
---   >>> strConcatTest (S "foo") (S "bar")
+--   >>> strConcat (S "foo") (S "bar")
 --   S "foobar"
 --
---   >>> strConcatTest (S "123") (S "456")
+--   >>> strConcat (S "123") (S "456")
 --   S "123456"
 --
---   >>> strConcatTest (S "foo") (I 3)
+--   >>> strConcat (S "foo") (I 3)
 --   Error "Cannot concatenate non-strings"
 --
---   >>> strConcatTest (B False) (S "foo")
+--   >>> strConcat (B False) (S "foo")
 --   Error "Cannot concatenate non-strings"
 --
---   >>> strConcatTest (I 3) (B True)
+--   >>> strConcat (I 3) (B True)
 --   Error "Cannot concatenate non-strings"
-strConcatTest :: Expr -> Expr -> Expr
-strConcatTest = strConcat
 
 -- | Unit tests the semantics of arithmetic expression.
 --
---   >>> arithExprTest Add (I 5) (I 3)
+--   >>> arithExpr Add (I 5) (I 3)
 --   I 8
 --
---   >>> arithExprTest Sub (I 3) (I 5)
+--   >>> arithExpr Sub (I 3) (I 5)
 --   I (-2)
 --
---   >>> arithExprTest Mul (I 4) (I 5)
+--   >>> arithExpr Mul (I 4) (I 5)
 --   I 20
 --
---   >>> arithExprTest Add (S "123") (S "456")
+--   >>> arithExpr Add (S "123") (S "456")
 --   Error "Cannot perform arithmetic operation on non-integers"
 --
---   >>> arithExprTest Sub (I 123) (S "456")
+--   >>> arithExpr Sub (I 123) (S "456")
 --   Error "Cannot perform arithmetic operation on non-integers"
 --
---   >>> arithExprTest Mul (B True) (S "456")
+--   >>> arithExpr Mul (B True) (S "456")
 --   Error "Cannot perform arithmetic operation on non-integers"
-arithExprTest :: ArithOp -> Expr -> Expr -> Expr
-arithExprTest = arithExpr
 
 -- | Unit tests the semantics of the unary boolean expression.
 --
---   >>> boolExprUnTest Not (B True)
+--   >>> boolExprUn Not (B True)
 --   B False
 --
---   >>> boolExprUnTest Not (B False)
+--   >>> boolExprUn Not (B False)
 --   B True
 --
---   >>> boolExprUnTest Not (I 5)
+--   >>> boolExprUn Not (I 5)
 --   Error "Cannot perform unary boolean operation on non-booleans"
 --
---   >>> boolExprUnTest Not (S "True")
+--   >>> boolExprUn Not (S "True")
 --   Error "Cannot perform unary boolean operation on non-booleans"
-boolExprUnTest :: BoolOpUn -> Expr -> Expr
-boolExprUnTest = boolExprUn
 
 -- | Unit tests the semantics of binary boolean expressions.
 --
---   >>> boolExprBiTest Eq (I 5) (I 5)
+--   >>> boolExprBi Eq (I 5) (I 5)
 --   B True
 --
---   >>> boolExprBiTest Eq (S "foo") (S "foo")
+--   >>> boolExprBi Eq (S "foo") (S "foo")
 --   B True
 --
---   >>> boolExprBiTest Gt (I 3) (I 2)
+--   >>> boolExprBi Gt (I 3) (I 2)
 --   B True
 --
---   >>> boolExprBiTest Lt (I 45) (I 43)
+--   >>> boolExprBi Lt (I 45) (I 43)
 --   B False
 --
---   >>> boolExprBiTest Gte (I 45) (I 43)
+--   >>> boolExprBi Gte (I 45) (I 43)
 --   B True
 --
---   >>> boolExprBiTest Lte (I 5) (I 5)
+--   >>> boolExprBi Lte (I 5) (I 5)
 --   B True
 --
---   >>> boolExprBiTest Lt (S "abc") (S "def")
+--   >>> boolExprBi Lt (S "abc") (S "def")
 --   Error "Cannot perform inequality boolean operations on strings"
 --
---   >>> boolExprBiTest Eq (I 123) (S "123")
+--   >>> boolExprBi Eq (I 123) (S "123")
 --   Error "Cannot perform binary boolean operation on non-strings or non-integers or mismatched types"
-boolExprBiTest :: BoolOpBi -> Expr -> Expr -> Expr
-boolExprBiTest = boolExprBi
+
+-- | Unit tests for bindings
+--
+--  >>> refExpr "a" [("a", I 3)]
+--  I 3
+--
+--  >>> addBindings [("a", I 4)] [("b", I 5), ("a", I 3), ("c", I 6)]
+--  [("b",I 5),("a",I 4),("c",I 6)]
+--
+--  >>> expr (Ref "a") []
+--  Error "Value of a not found"
+--
+-- | Integration tests for functions, bindings, along with other features
+--
+--  >>> expr (Let [("a", I 3)] (Ref "a")) []
+--  I 3
+--
+--  >>> expr (Let [("a", I 3)] ( Let [("a", I 4)] (Ref "a") )) []
+--  I 4
+--
+--  >>> expr (Let [("a", (If (B True) (I 3) (I 4)) )] (Ref "a")) []
+--  I 3
+--
+--  >>> expr (Let [("a", (ArithExpr Add (I 1) (I 2)))] (Ref "a")) []
+--  I 3
+--
+-- | Integration tests for functions
+--
+--  >>> expr (Func "ais3" ["a"] (BoolExprBi Eq (Ref "a") (I 3)) (Ref "ais3")) []
+--  C [] ["a"] (BoolExprBi Eq (Ref "a") (I 3))
+--
+--  >>> expr (Func "ais3" ["a"] (BoolExprBi Eq (Ref "a") (I 3)) (Call "ais3" [I 3])) []
+--  B True
+--
+-- | Integration test for Static Scoping
+--
+--  let x = 3
+--  define addToX (a) { x + a }
+--  let x = 4
+--  let y = addToX (5)
+--  -> y = 8
+--
+--  >>> :{
+--  expr (
+--  Let [("x", I 3)]
+--  (Func "addToX" ["a"]
+--      (ArithExpr Add (Ref "x") (Ref "a")) (
+--  Let [("x", I 4),
+--       ("y", Call "addToX" [I 5])]
+--  (Ref "y")
+--  ))) []
+--  :}
+--  I 8
+--
+--  (Static scoping expect 8, dynamic binding expect 9
+--  See: https://web.engr.oregonstate.edu/~walkiner/teaching/cs381-wi20/slides/5.ScopeAndParameters.pdf)
+--
+-- | Integration tests for recursion
+--
+-- Simple recursion
+-- (define (fac n)
+--      if (= n 1)
+--          (1)
+--          (* (n) (fac (- n 1))))
+-- (fac 2)
+--
+--  >>> :{
+-- expr(
+-- Func "fac" ["n"]
+-- (If (BoolExprBi Eq (Ref "n") (I 1))
+--      (I 1)
+--      (ArithExpr Mul (Ref "n") ( Call "fac" [ArithExpr Sub (Ref "n") (I 1)] )))
+-- (Call "fac" [I 2])
+-- ) []
+--  :}
+--I 2
+--
+--
+-- Fibbonaci
+-- (define (fib n)
+--     (if (= n 0) 0
+--       (if (= n 1) 1
+--         (+ (fib (- n 1)) (fib (- n 2))))))
+--
+-- (fib 2)
+--
+--  >>> :{
+-- expr (
+-- Func "fib" ["n"]
+-- (If (BoolExprBi Eq (Ref "n") (I 0))
+--      (I 0)
+--      (If (BoolExprBi Eq (Ref "n") (I 1))
+--          (I 1)
+--          (ArithExpr Add
+--              (Call "fib" [(ArithExpr Sub (Ref "n") (I 1))])
+--              (Call "fib" [(ArithExpr Sub (Ref "n") (I 2))])
+--          )
+--      )
+--  )
+-- (Call "fib" [I 2])
+-- ) []
+--  :}
+--I 1

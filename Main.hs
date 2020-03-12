@@ -7,29 +7,35 @@ main = putStrLn "hello yes this is main"
 
 -- Takes an expression and recursively evaluates until resulting in one of the
 -- base cases.
-expr :: Expr -> Expr
-expr (B v) = B v
-expr (I v) = I v
-expr (N v) = N v
-expr (S v) = S v
-expr (List v) = List v
-expr (Error v) = S v
-expr (If cond exprThen exprElse) = ifExpr cond exprThen exprElse
-expr (StrConcat strl strr) = strConcat strl strr
-expr (ArithExpr op numl numr) = arithExpr op numl numr
-expr (BoolExprUn op bool) = boolExprUn op bool
-expr (BoolExprBi op exprl exprr) = boolExprBi op exprl exprr
-expr (ListExprUn op list) = listExprUn op list
-expr (ListExprBi op listl listr) = listExprBi op listl listr
-expr (Call name arguments) = fnCall name arguments
-expr (Let defs body) = letScope defs body
+expr :: Expr -> Env Expr -> Expr
+expr (B v) e = B v
+expr (I v) e = I v
+expr (N v) e = N v
+expr (S v) e = S v
+expr (List v) e = List v
+expr (Error v) e = S v
+expr (C env params bodyExpr) e = C env params bodyExpr
+expr (If cond exprThen exprElse) e = ifExpr (expr cond e) exprThen exprElse e
+expr (StrConcat strl strr) e = strConcat (expr strl e) (expr strr e)
+expr (ArithExpr op numl numr) e = arithExpr op (expr numl e) (expr numr e)
+expr (BoolExprUn op bool) e = boolExprUn op (expr bool e)
+expr (BoolExprBi op exprl exprr) e = boolExprBi op (expr exprl e) (expr exprr e)
+expr (ListExprUn op list) e = listExprUn op (expr list e)
+expr (ListExprBi op listl listr) e = listExprBi op (expr listl e) (expr listr e)
+expr (Let defs body) e = letScope (evalBeforeBind defs e) body e
+expr (Ref name) e = refExpr name e
+expr (Func name params bodyExpr nextExpr) e = fnDef name params bodyExpr nextExpr e
+expr (Call name arguments) e = fnCall name (evalArguments arguments e) e
 
 -- Takes three expressions: bool-expr, expr-left, expr-right.
 -- If bool-expr evaluates to true, returns expr-left.
 -- Otherwise, returns expr-right.
-ifExpr :: Expr -> Expr -> Expr -> Expr
-ifExpr (B cond) exprThen exprElse = if cond then exprThen else exprElse
-ifExpr _ _ _ = Error "Cannot branch expressions based on non-boolean condition"
+--
+-- Note: Due to performance and security reason,
+--      we don't evaluate branches before we complete evaluating the condition expr
+ifExpr :: Expr -> Expr -> Expr -> Env Expr -> Expr
+ifExpr (B cond) exprThen exprElse env = if cond then (expr exprThen env) else (expr exprElse env)
+ifExpr _ _ _ _ = Error "Cannot branch expressions based on non-boolean condition"
 
 -- Takes two expressions: str-expr-l, str-expr-r.
 -- If they're two strings, concatenates str-expr-l and str-expr-r and returns
@@ -88,20 +94,92 @@ listExprBi :: ListOpBi -> Expr -> Expr -> Expr
 listExprBi ListConcat (List l) (List r) = List $ l ++ r
 listExprBi _ _ _ = Error "Cannot concatenate non-list types with list concatenate operator."
 
--- Takes an expression and an expression list.
--- The first expression must be the name of a function defined with a Stmt.
--- The expression list can be any arbitrary values.
--- This function retuns the result of performing the computation defined by the
--- lreferenced function...using the values described in the argument list as
--- the passed-in parameters.
-fnCall :: Expr -> [Expr] -> Expr
-fnCall = undefined
-
 -- Takes a list of expression tuples and an expression.
 -- The list of expression tuples should be (Name, Value).
 -- The expression can be anything -- it may optionally contain names.
 -- This function returns the result of the computation in the expression, with
 -- all the Names in the expression... replaced by the corrosponding values in =
 -- the list of (Name, Value) tuples.
-letScope :: [(Expr, Expr)] -> Expr -> Expr
-letScope = undefined
+-- letScope defs body e
+letScope :: [(Name, Expr)] -> Expr -> Env Expr -> Expr
+letScope newBindings nextExpr currEnv = expr nextExpr (addBindings newBindings currEnv)
+
+-- Check for existing name in env before adding the new binding
+-- Take: New binding, current env
+-- Return: An new env with additional and/or updated bindings (if existing name is found)
+addBindings :: Env Expr -> Env Expr -> Env Expr
+addBindings [] [] = []
+addBindings [] curEnv = curEnv
+addBindings new [] = new
+addBindings ((n,v):xs) env = case lookup n env of
+                                  Just v' -> addBindings xs (replaceBinding (n,v) env)
+                                  Nothing -> addBindings xs ((n,v):env)
+
+-- Take: a binding in form of (name, newValue), and a current env
+-- Return: a new env in which
+--          the value of found name (from lookup) is replace with newValue
+-- Precondition: there must be a binding whose name is found in the env (with lookup)
+replaceBinding :: (Name, Expr) -> Env Expr -> Env Expr
+replaceBinding (n,v) ((n',v'):ys) = if n == n'
+                                       then (n',v) : ys
+                                       else (n',v') : (replaceBinding (n,v) ys)
+
+-- Take: name of variable, an evironment
+-- Return: Expr that was binded to that name in the given environment
+--          or an error if that name was not binded in that environment
+refExpr :: Name -> Env Expr -> Expr
+refExpr name env = case lookup name env of
+                        (Just v) -> v
+                        _ -> Error ("Value of " ++ name ++ " not found")
+--refExpr _ _ = Error "Must put name to refer a binded variable"
+
+-- Evaluate the nextExpr with an environment in which
+-- we've added a binding of the function name and its closure
+-- params: functionName params functionBodyExpr nextExpr env
+fnDef :: Name -> [Name] -> Expr -> Expr -> Env Expr -> Expr
+fnDef fnName params bodyExpr nextExpr e = expr nextExpr ((fnName, (C e params bodyExpr)) : e)
+
+-- Takes an expression and an expression list.
+-- The first expression must be the name of a function defined with a Stmt.
+-- The expression list can be any arbitrary values.
+-- This function retuns the result of performing the computation defined by the
+-- lreferenced function...using the values described in the argument list as
+-- the passed-in parameters.
+-- fnCall name-expr [expr1 expr2...]
+fnCall :: Name -> [Expr] -> Env Expr -> Expr
+fnCall funcName args e =
+    let closure = (refExpr funcName e) in case closure of
+    (C fnEnv params bodyExpr)
+        -> if length params /= length args
+              then Error "Number of arguments does not match number of parameter"
+           else expr bodyExpr e'
+               where
+                   e' = (bindedParams ++ fnEnv ++ fnNameBinding)
+                   bindedParams = (matchPA params args e)
+                   fnNameBinding = [(funcName, closure)] -- for recursion
+    _ -> Error ("Function " ++ funcName ++ " not found")
+
+-- Takes 2 lists: list of variable names (1st list), list of expression (2nd list),
+-- and an environment (3rd param)
+-- For each member of 2nd list,
+--      evaluate it with `expr` function within the given environment,
+--      then bind it with the corresponding member of the 1st list,
+--      then append it to the resulting env
+matchPA :: [Name] -> [Expr] -> Env Expr -> Env Expr
+matchPA [] [] _ = []
+matchPA (x:xs) (y:ys) e = (x,(expr y e)) : matchPA xs ys e
+
+-- Take:
+--      a list of bindings that are being added to the current environment
+--      the current environment
+-- Return: a list of bindings in which expressions are evaluated
+evalBeforeBind :: [(Name, Expr)] -> Env Expr -> [(Name, Expr)]
+evalBeforeBind [] _ = []
+evalBeforeBind ((n,e):xs) currEnv = ((n, expr e currEnv) : (evalBeforeBind xs currEnv))
+
+-- Take: a list of argument and an environment
+-- Return: a list of argument in which
+--      each member was evaluated within the given environment
+evalArguments :: [Expr] -> Env Expr -> [Expr]
+evalArguments [] _ = []
+evalArguments (x:xs) e = (expr x e) : (evalArguments xs e)
