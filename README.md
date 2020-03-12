@@ -54,7 +54,7 @@ For example, let's say we'd like to test the interpreter on the following Lil' L
 
 ```
 (define (ais3 a)
-    (== a 3)
+    (= a 3)
 (ais3 3))
 ```
 
