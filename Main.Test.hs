@@ -55,6 +55,15 @@ import Main
 --   >>> arithExpr Mul (I 4) (I 5)
 --   I 20
 --
+--   >>> arithExpr Div (I 4) (I 5)
+--   I 0
+--
+--   >>> arithExpr Div (I 10) (I 2)
+--   I 5
+--
+--   >>> arithExpr Div (I 17) (I 3)
+--   I 5
+--
 --   >>> arithExpr Add (S "123") (S "456")
 --   Error "Cannot perform arithmetic operation on non-integers"
 --
@@ -63,6 +72,15 @@ import Main
 --
 --   >>> arithExpr Mul (B True) (S "456")
 --   Error "Cannot perform arithmetic operation on non-integers"
+--
+--   >>> arithExpr Div (S "10") (S "2")
+--   Error "Cannot perform arithmetic operation on non-integers"
+--
+--   >>> arithExpr Div (I 3) (I 0)
+--   Error "Cannot perform division by zero"
+--
+--   >>> arithExpr Div (I 0) (I 0)
+--   Error "Cannot perform division by zero"
 
 -- | Unit tests the semantics of the unary boolean expression.
 --
