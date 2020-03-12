@@ -21,7 +21,7 @@ data ListOpBi = ListConcat
   deriving (Eq, Show)
 
 -- | An environment maps variables to some type of values.
-type Env t = [(Name,t)]
+type Env t = [(Expr,t)]
 
 data Expr
   = B Bool                         -- base type: Boolean
@@ -30,7 +30,7 @@ data Expr
   | S String                       -- base type: String
   | List [Expr]                    -- (list expr1 expr2 ...)
   | Error String                   -- base type: Error
-  | C (Env Expr) [Name] Expr       -- closure
+  | C (Env Expr) [Expr] Expr       -- closure
   | If Expr Expr Expr              -- (if boolean-expr then-expr else-expr)
   | StrConcat Expr Expr            -- (++ string-expr-l string-expr-r)
   | ArithExpr ArithOp Expr Expr    -- ([+, -, *, /] num-expr-l num-expr-r)
@@ -38,8 +38,8 @@ data Expr
   | BoolExprBi BoolOpBi Expr Expr  -- ([=, >, <, >=, <=] expr-l expr-r)
   | ListExprUn ListOpUn Expr       -- ([map <function>, ind <index value>] (list expr1 expr2 ...))
   | ListExprBi ListOpBi Expr Expr  -- (++ (list expr1 expr2 ...) (list expr3 expr4 ...))
-  | Let [(Name, Expr)] Expr        -- (let ((name-expr1 val-expr1) (name-expr2 val-expr2) ...) (body-expr))
-  | Ref Name                       -- refer a binded name
-  | Func Name [Name] Expr Expr     -- (define name-expr (param-expr1 param-expr2 ...) (next-expr))
-  | Call Name [Expr]               -- (call function-name-expr (param-expr1 param-expr2 ...))
+  | Let [(Expr, Expr)] Expr        -- (let ((name-expr1 val-expr1) (name-expr2 val-expr2) ...) (body-expr))
+  | Ref Expr                       -- refer a binded name
+  | Func Expr [Expr] Expr Expr     -- (define name-expr (param-expr1 param-expr2 ...) (next-expr))
+  | Call Expr [Expr]               -- (call function-name-expr (param-expr1 param-expr2 ...))
   deriving (Eq, Show)

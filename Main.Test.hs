@@ -106,36 +106,57 @@ import Main
 
 -- | Unit tests for bindings
 --
---  >>> refExpr "a" [("a", I 3)]
+--  >>> refExpr (N "a") [(N "a", I 3)]
 --  I 3
 --
---  >>> addBindings [("a", I 4)] [("b", I 5), ("a", I 3), ("c", I 6)]
---  [("b",I 5),("a",I 4),("c",I 6)]
+--  >>> refExpr (I 3) [(N "a", I 3)]
+--  Error "Must put name to refer a binded variable"
 --
---  >>> expr (Ref "a") []
---  Error "Value of a not found"
+--  >>> expr (Ref (N "a")) []
+--  Error "Value of 'a' not found"
+--
+--  >>> expr (Let [(N "a", I 2), (I 3, I 5), (N "b", B True)] (I 4)) []
+--  Error "The binding list is not valid"
+--
+--  >>> expr (Let [] (I 2)) []
+--  Error "Cannot bind an empty list"
 --
 -- | Integration tests for functions, bindings, along with other features
 --
---  >>> expr (Let [("a", I 3)] (Ref "a")) []
+--  >>> expr (Let [((N "a"), I 3)] (Ref (N "a"))) []
 --  I 3
 --
---  >>> expr (Let [("a", I 3)] ( Let [("a", I 4)] (Ref "a") )) []
+--  >>> expr (Let [((N "a"), I 3)] ( Let [((N "a"), I 4)] (Ref (N "a")) )) []
 --  I 4
 --
---  >>> expr (Let [("a", (If (B True) (I 3) (I 4)) )] (Ref "a")) []
+--  >>> expr (Let [((N "a"), (If (B True) (I 3) (I 4)) )] (Ref (N "a"))) []
 --  I 3
 --
---  >>> expr (Let [("a", (ArithExpr Add (I 1) (I 2)))] (Ref "a")) []
+--  >>> expr (Let [((N "a"), (ArithExpr Add (I 1) (I 2)))] (Ref (N "a"))) []
 --  I 3
 --
 -- | Integration tests for functions
 --
---  >>> expr (Func "ais3" ["a"] (BoolExprBi Eq (Ref "a") (I 3)) (Ref "ais3")) []
---  C [] ["a"] (BoolExprBi Eq (Ref "a") (I 3))
+--  >>> expr (Func (N "ais3") [(N "a")] (BoolExprBi Eq (Ref (N "a")) (I 3)) (Ref (N "ais3"))) []
+--  C [] [N "a"] (BoolExprBi Eq (Ref (N "a")) (I 3))
 --
---  >>> expr (Func "ais3" ["a"] (BoolExprBi Eq (Ref "a") (I 3)) (Call "ais3" [I 3])) []
+--  >>> expr (Func (I 3) [(N "a")] (BoolExprBi Eq (Ref (N "a")) (I 3)) (Ref (N "ais3"))) []
+--  Error "Function's name must be a string"
+--
+--  >>> expr (Func (N "ais3") [(N "a"), (I 2)] (BoolExprBi Eq (Ref (N "a")) (I 3)) (Ref (N "ais3"))) []
+--  Error "Function parameters must be a list of strings"
+--
+--  >>> expr (Func (N "ais3") [(N "a")] (BoolExprBi Eq (Ref (N "a")) (I 3)) (Call (I 4) [I 3])) []
+--  Error "Function's name must be a string"
+--
+--  >>> expr (Func (N "ais3") [(N "a")] (BoolExprBi Eq (Ref (N "a")) (I 3)) (Call (N "ais3") [I 3])) []
 --  B True
+--
+--  >>> expr (Func (N "ais3") [] (I 2) (Call (N "ais3") [I 3])) []
+--  Error "Number of arguments does not match number of parameter"
+--
+--  >>> expr (Func (N "ais3") [] (I 2) (Call (N "ais4") [])) []
+--  Error "Function ais4 not found"
 --
 -- | Integration test for Static Scoping
 --
@@ -147,12 +168,12 @@ import Main
 --
 --  >>> :{
 --  expr (
---  Let [("x", I 3)]
---  (Func "addToX" ["a"]
---      (ArithExpr Add (Ref "x") (Ref "a")) (
---  Let [("x", I 4),
---       ("y", Call "addToX" [I 5])]
---  (Ref "y")
+--  Let [((N "x"), I 3)]
+--  (Func (N "addToX") [(N "a")]
+--      (ArithExpr Add (Ref (N "x")) (Ref (N "a"))) (
+--  Let [((N "x"), I 4),
+--       ((N "y"), Call (N "addToX") [I 5])]
+--  (Ref (N "y"))
 --  ))) []
 --  :}
 --  I 8
@@ -171,11 +192,11 @@ import Main
 --
 --  >>> :{
 -- expr(
--- Func "fac" ["n"]
--- (If (BoolExprBi Eq (Ref "n") (I 1))
+-- Func (N "fac") [(N "n")]
+-- (If (BoolExprBi Eq (Ref (N "n")) (I 1))
 --      (I 1)
---      (ArithExpr Mul (Ref "n") ( Call "fac" [ArithExpr Sub (Ref "n") (I 1)] )))
--- (Call "fac" [I 2])
+--      (ArithExpr Mul (Ref (N "n")) ( Call (N "fac") [ArithExpr Sub (Ref (N "n")) (I 1)] )))
+-- (Call (N "fac") [I 2])
 -- ) []
 --  :}
 --I 2
@@ -191,18 +212,18 @@ import Main
 --
 --  >>> :{
 -- expr (
--- Func "fib" ["n"]
--- (If (BoolExprBi Eq (Ref "n") (I 0))
+-- Func (N "fib") [(N "n")]
+-- (If (BoolExprBi Eq (Ref (N "n")) (I 0))
 --      (I 0)
---      (If (BoolExprBi Eq (Ref "n") (I 1))
+--      (If (BoolExprBi Eq (Ref (N "n")) (I 1))
 --          (I 1)
 --          (ArithExpr Add
---              (Call "fib" [(ArithExpr Sub (Ref "n") (I 1))])
---              (Call "fib" [(ArithExpr Sub (Ref "n") (I 2))])
+--              (Call (N "fib") [(ArithExpr Sub (Ref (N "n")) (I 1))])
+--              (Call (N "fib") [(ArithExpr Sub (Ref (N "n")) (I 2))])
 --          )
 --      )
 --  )
--- (Call "fib" [I 2])
+-- (Call (N "fib") [I 2])
 -- ) []
 --  :}
 --I 1
