@@ -101,8 +101,20 @@ listExprBi _ _ _ = Error "Cannot concatenate non-list types with list concatenat
 -- all the Names in the expression... replaced by the corrosponding values in =
 -- the list of (Name, Value) tuples.
 -- letScope defs body e
-letScope :: [(Name, Expr)] -> Expr -> Env Expr -> Expr
-letScope newBindings nextExpr currEnv = expr nextExpr (addBindings newBindings currEnv)
+letScope :: [(Expr, Expr)] -> Expr -> Env Expr -> Expr
+letScope [] _ _ = Error "Cannot bind an empty list"
+letScope newBindings nextExpr currEnv =
+    case (validateBindings newBindings) of
+        True -> expr nextExpr (addBindings newBindings currEnv)
+        False -> Error "The binding list is not valid"
+
+-- Check if a list is of form [(N name, Expr)]
+-- True if it does. False otherwise
+validateBindings :: [(Expr, Expr)] -> Bool
+validateBindings [] = True
+validateBindings (x:xs) = case x of
+                     (N n, _) -> validateBindings xs
+                     _ -> False
 
 -- Check for existing name in env before adding the new binding
 -- Take: New binding, current env
@@ -119,7 +131,7 @@ addBindings ((n,v):xs) env = case lookup n env of
 -- Return: a new env in which
 --          the value of found name (from lookup) is replace with newValue
 -- Precondition: there must be a binding whose name is found in the env (with lookup)
-replaceBinding :: (Name, Expr) -> Env Expr -> Env Expr
+replaceBinding :: (Expr, Expr) -> Env Expr -> Env Expr
 replaceBinding (n,v) ((n',v'):ys) = if n == n'
                                        then (n',v) : ys
                                        else (n',v') : (replaceBinding (n,v) ys)
@@ -127,17 +139,30 @@ replaceBinding (n,v) ((n',v'):ys) = if n == n'
 -- Take: name of variable, an evironment
 -- Return: Expr that was binded to that name in the given environment
 --          or an error if that name was not binded in that environment
-refExpr :: Name -> Env Expr -> Expr
-refExpr name env = case lookup name env of
-                        (Just v) -> v
-                        _ -> Error ("Value of " ++ name ++ " not found")
---refExpr _ _ = Error "Must put name to refer a binded variable"
+refExpr :: Expr -> Env Expr -> Expr
+refExpr (N name) env = let foundBindings = filter (\(N n,v) -> n == name) env
+                        in case foundBindings of
+                            [] -> Error ("Value of '" ++ name ++ "' not found")
+                            _ -> snd (head (foundBindings))
+refExpr _ _ = Error "Must put name to refer a binded variable"
 
 -- Evaluate the nextExpr with an environment in which
 -- we've added a binding of the function name and its closure
 -- params: functionName params functionBodyExpr nextExpr env
-fnDef :: Name -> [Name] -> Expr -> Expr -> Env Expr -> Expr
-fnDef fnName params bodyExpr nextExpr e = expr nextExpr ((fnName, (C e params bodyExpr)) : e)
+fnDef :: Expr -> [Expr] -> Expr -> Expr -> Env Expr -> Expr
+fnDef (N fnName) params bodyExpr nextExpr e =
+    case (isNamesList params) of
+        True -> expr nextExpr (((N fnName), (C e params bodyExpr)) : e)
+        False -> Error "Function parameters must be a list of strings"
+fnDef _ _ _ _ _ = Error "Function's name must be a string"
+
+-- Check if a [Expr] is a list that contains all (N n)'s
+-- True if it does. False otherwise
+isNamesList :: [Expr] -> Bool
+isNamesList [] = True
+isNamesList (x:xs) = case x of
+                     (N n) -> isNamesList xs
+                     _ -> False
 
 -- Takes an expression and an expression list.
 -- The first expression must be the name of a function defined with a Stmt.
@@ -146,9 +171,9 @@ fnDef fnName params bodyExpr nextExpr e = expr nextExpr ((fnName, (C e params bo
 -- lreferenced function...using the values described in the argument list as
 -- the passed-in parameters.
 -- fnCall name-expr [expr1 expr2...]
-fnCall :: Name -> [Expr] -> Env Expr -> Expr
-fnCall funcName args e =
-    let closure = (refExpr funcName e) in case closure of
+fnCall :: Expr -> [Expr] -> Env Expr -> Expr
+fnCall (N funcName) args e =
+    let closure = (refExpr (N funcName) e) in case closure of
     (C fnEnv params bodyExpr)
         -> if length params /= length args
               then Error "Number of arguments does not match number of parameter"
@@ -156,8 +181,9 @@ fnCall funcName args e =
                where
                    e' = (bindedParams ++ fnEnv ++ fnNameBinding)
                    bindedParams = (matchPA params args e)
-                   fnNameBinding = [(funcName, closure)] -- for recursion
+                   fnNameBinding = [(N funcName, closure)] -- for recursion
     _ -> Error ("Function " ++ funcName ++ " not found")
+fnCall _ _ _ = Error "Function's name must be a string"
 
 -- Takes 2 lists: list of variable names (1st list), list of expression (2nd list),
 -- and an environment (3rd param)
@@ -165,7 +191,7 @@ fnCall funcName args e =
 --      evaluate it with `expr` function within the given environment,
 --      then bind it with the corresponding member of the 1st list,
 --      then append it to the resulting env
-matchPA :: [Name] -> [Expr] -> Env Expr -> Env Expr
+matchPA :: [Expr] -> [Expr] -> Env Expr -> Env Expr
 matchPA [] [] _ = []
 matchPA (x:xs) (y:ys) e = (x,(expr y e)) : matchPA xs ys e
 
@@ -173,7 +199,7 @@ matchPA (x:xs) (y:ys) e = (x,(expr y e)) : matchPA xs ys e
 --      a list of bindings that are being added to the current environment
 --      the current environment
 -- Return: a list of bindings in which expressions are evaluated
-evalBeforeBind :: [(Name, Expr)] -> Env Expr -> [(Name, Expr)]
+evalBeforeBind :: [(Expr, Expr)] -> Env Expr -> [(Expr, Expr)]
 evalBeforeBind [] _ = []
 evalBeforeBind ((n,e):xs) currEnv = ((n, expr e currEnv) : (evalBeforeBind xs currEnv))
 
