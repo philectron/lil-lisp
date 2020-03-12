@@ -50,6 +50,9 @@ strConcat _ _  = Error "Cannot concatenate non-strings"
 -- operation arith-op on them and returns the result.
 -- Otherwise, throws an error.
 arithExpr :: ArithOp -> Expr -> Expr -> Expr
+arithExpr Div (I numl) (I numr) = case numr of
+                                    0 -> Error "Cannot perform division by zero"
+                                    _ -> I $ div numl numr
 arithExpr op (I numl) (I numr) = I $ operator numl numr
   where operator = case op of
                     Add -> (+)
