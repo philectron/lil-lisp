@@ -15,11 +15,11 @@ Lil’ Lisp is a (little) version of the well-known Lisp programming language (s
 
 #### 3. Instructions for how to execute example programs in your language. Specifically:
 
-Our language implementation is intended to be run from GHCi. For now, our language implementation is not intended to be run from the command line (but this can change later).
+Our language implementation is intended to be run from GHCi.
 
 Module to be loaded: Main
 
-Note that we don't have a parser yet. These are just examples what the end product looks like. For more examples, please look at `Main.Test.hs` for tests for AST
+For more examples, please look at `Main.Test.hs` for tests for AST:
 
 ##### 3.1 To observe our prepared good and bad running examples, run:
 
@@ -48,13 +48,13 @@ Then, execute function `expr` with two arguments:
 
 - First argument: the AST of the targeted language. Please refer to `Grammar.hs` for details about what a correct AST of **Lil' Lisp** looks like)
 
-- Second argument: `[]` (this is the initial stack when the program first starts with)
+- Second argument: `[]` (this is the initial stack the program first starts with)
 
 For example, let's say we'd like to test the interpreter on the following Lil' Lisp program
 
 ```
 (define (ais3 a)
-    (a == 3)
+    (= a 3)
 (ais3 3))
 ```
 
